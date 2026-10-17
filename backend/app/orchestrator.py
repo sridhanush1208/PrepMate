@@ -236,6 +236,26 @@ def interviewer_ask(student_id: str, session_id: str, topic_id: str | None) -> l
     return [_say(student_id, session_id, "interviewer", text, used)]
 
 
+def _read_score(data: dict) -> float:
+    """Score from the JSON field; if the model forgot it, read "Score: 0.4" / "4/10" from the reply text."""
+    value = data.get("score")
+    if value is None:
+        text = str(data.get("reply", ""))
+        m = re.search(r"(\d+(?:\.\d+)?)\s*/\s*(10|1(?:\.0)?)\b", text) or \
+            re.search(r"score[^0-9]{0,15}(\d+(?:\.\d+)?)", text, re.I)
+        if m:
+            value = float(m.group(1))
+            if m.lastindex == 2 and float(m.group(2)) == 10:
+                value /= 10
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if value > 1:  # model answered on a 0-10 or 0-100 scale
+        value = value / 100 if value > 10 else value / 10
+    return max(0.0, min(1.0, value))
+
+
 def interviewer_grade(student_id: str, session_id: str, session: dict, answer: str, message_id: str) -> list[dict]:
     question = memory.get_question(session["pending_question"])
     topic_id = session.get("pending_topic") or question["topic_id"]
@@ -245,13 +265,10 @@ def interviewer_grade(student_id: str, session_id: str, session: dict, answer: s
              f"IDEAL POINTS:\n{points}\nSTUDENT ANSWER: {answer}")
     events, data = _llm_turn("interviewer_grade", "interviewer", student_id, session_id,
                              pack, used, answer, message_id, extra)
-    if "score" not in data:
-        return events  # LLM unavailable: keep the question pending
+    if not data:
+        return events  # LLM unavailable: keep the question pending so the student can retry
 
-    try:
-        score = max(0.0, min(1.0, float(data["score"])))
-    except (TypeError, ValueError):
-        score = 0.0
+    score = _read_score(data)
     feedback = str(data.get("feedback") or "")[:300]
     result = memory.record_attempt(student_id, session_id, question, score, feedback, answer)
     memory.clear_pending_question(student_id, session_id)

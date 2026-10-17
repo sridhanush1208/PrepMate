@@ -29,6 +29,16 @@ Save memory_updates ONLY for NEW, lasting information from the student's latest 
 A rule is for requests like "give me a hint first next time" (applies_to: interviewer) or
 "explain with diagrams" (applies_to: tutor). Use an empty list when there is nothing new."""
 
+GRADE_CONTRACT = """Reply ONLY with a JSON object of exactly this shape (all keys required):
+{
+  "score": 0.0,
+  "feedback": "one sentence to remember about this attempt",
+  "reply": "what you say to the student (markdown, under 120 words)",
+  "memory_updates": []
+}
+"score" MUST be a number between 0.0 and 1.0. memory_updates may hold facts/rules as described:
+{"kind": "fact", "text": "..."} or {"kind": "rule", "text": "...", "applies_to": "coach|interviewer|tutor|planner"}."""
+
 ROLE = {
     "coach": """You are the COACH. Be warm and brief. Recap what matters from memory and suggest one next step
 (a mock interview, learning a topic, or making a plan). If the student clearly wants to be taught, set
@@ -100,7 +110,8 @@ def _clean(value):
 
 def build_prompt(role_key: str, student: dict, pack: dict, recent: list[dict],
                  latest: str, extra: str = "") -> tuple[str, str]:
-    system = "\n\n".join([TEAM, ROLE[role_key], CONTRACT])
+    contract = GRADE_CONTRACT if role_key == "interviewer_grade" else CONTRACT
+    system = "\n\n".join([TEAM, ROLE[role_key], contract])
     convo = "\n".join(
         f"{'Student' if m['role'] == 'user' else AGENT_LABELS.get(m['agent'], 'Agent')}: {m['text'][:400]}"
         for m in recent

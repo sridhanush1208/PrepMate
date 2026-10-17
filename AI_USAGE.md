@@ -1,4 +1,4 @@
-# AI usage disclosure
+﻿# AI usage disclosure
 
 The hackathon rules allow AI coding assistants as long as they are disclosed. This file is that disclosure.
 
@@ -18,7 +18,7 @@ The hackathon rules allow AI coding assistants as long as they are disclosed. Th
 - The multi-key LLM fallback requirement
 
 ## How I verified it
-- 19 automated tests (memory layer, orchestration, LLM fallback) against a real FalkorDB
+- 28 automated tests (memory layer, orchestration, LLM fallback) against a real FalkorDB
 - Manual end-to-end runs of the demo story in the CLI and the browser
 - A concurrency load test against FalkorDB
 

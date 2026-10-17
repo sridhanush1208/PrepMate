@@ -114,6 +114,20 @@ def test_all_keys_down_raises():
         llm.chat_json("s", "u")
 
 
+@pytest.mark.parametrize("data, expected", [
+    ({"score": 0.4}, 0.4),
+    ({"score": "0.7"}, 0.7),
+    ({"score": 7}, 0.7),                       # 0-10 scale
+    ({"reply": "Score: 0.2/1.0. Good start"}, 0.2),
+    ({"reply": "I'd give this 6/10"}, 0.6),
+    ({"reply": "Score: 0.35 overall"}, 0.35),
+    ({"reply": "no number here"}, 0.0),
+])
+def test_read_score(data, expected):
+    from app.orchestrator import _read_score
+    assert _read_score(data) == pytest.approx(expected)
+
+
 def test_multiple_keys_parsed_from_env(monkeypatch):
     from app import config
     monkeypatch.setenv("GEMINI_API_KEYS", "k1, k2,k1\nk3")
