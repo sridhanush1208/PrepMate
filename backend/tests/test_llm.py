@@ -1,4 +1,4 @@
-"""Fallback chain tests with fake clients (no network, no database)."""
+﻿"""Fallback chain tests with fake clients (no network, no database)."""
 import pytest
 
 try:  # openai >= 3 ships httpx2
@@ -49,7 +49,7 @@ def test_falls_back_to_next_key_on_rate_limit():
     g2 = FakeClient(['{"reply": "from key 2"}'])
     llm._POOL = _pool(("gemini", "gemini#1", g1), ("gemini", "gemini#2", g2))
     data, used = llm.chat_json("s", "u")
-    assert data["reply"] == "from key 2" and used == "gemini#2"
+    assert data["reply"] == "from key 2" and used.startswith("gemini#2")
     assert not llm._POOL.slots[0].available()  # key 1 is cooling down
 
 
@@ -58,7 +58,7 @@ def test_falls_back_from_gemini_to_groq():
     q = FakeClient(['{"reply": "groq"}'])
     llm._POOL = _pool(("gemini", "gemini#1", g), ("groq", "groq#1", q))
     data, used = llm.chat_json("s", "u")
-    assert used == "groq#1"
+    assert used.startswith("groq#1")
 
 
 def test_bad_key_is_disabled():
@@ -82,6 +82,30 @@ def test_round_robin_spreads_load():
     for _ in range(4):
         llm.chat_json("s", "u")
     assert a.calls == 2 and b.calls == 2
+
+
+def test_overloaded_model_skips_its_other_keys_and_uses_backup_model():
+    from openai import InternalServerError
+    k1 = FakeClient([_err(InternalServerError, 503)])
+    k2 = FakeClient([])
+    backup = FakeClient(['{"reply": "lite"}'])
+    llm._POOL = llm.KeyPool([
+        llm.KeySlot("gemini", "gemini#1", k1, "flash"),
+        llm.KeySlot("gemini", "gemini#2", k2, "flash"),
+        llm.KeySlot("gemini", "gemini#1", backup, "flash-lite"),
+    ])
+    data, used = llm.chat_json("s", "u")
+    assert data["reply"] == "lite" and "flash-lite" in used
+    assert k2.calls == 0  # same overloaded model was not retried on another key
+
+
+def test_missing_model_is_disabled():
+    from openai import NotFoundError
+    gone = FakeClient([_err(NotFoundError, 404)])
+    ok = FakeClient([])
+    llm._POOL = _pool(("groq", "groq#1", gone), ("groq", "groq#2", ok))
+    llm.chat_json("s", "u")
+    assert llm._POOL.slots[0].disabled
 
 
 def test_all_keys_down_raises():

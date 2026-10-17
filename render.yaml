@@ -11,9 +11,9 @@ services:
     envVars:
       - key: GEMINI_API_KEYS
         sync: false
-      - key: GEMINI_MODEL
+      - key: GEMINI_MODELS
         sync: false
       - key: GROQ_API_KEYS
         sync: false
-      - key: GROQ_MODEL
+      - key: GROQ_MODELS
         sync: false

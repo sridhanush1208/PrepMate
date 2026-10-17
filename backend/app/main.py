@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from . import config, memory, orchestrator
 from .db import list_student_ids, slugify
-from .llm import is_mock, pool, providers
+from .llm import is_mock, list_models, pool, providers
 from .queries import all_queries
 
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +45,12 @@ def health():
 def llm_status():
     """Per-key health for the fallback chain (labels only, never the keys)."""
     return pool().status()
+
+
+@app.get("/api/llm/models")
+def llm_models():
+    """Model names your keys can use (to pick GEMINI_MODELS / GROQ_MODELS)."""
+    return list_models()
 
 
 @app.get("/api/roles")

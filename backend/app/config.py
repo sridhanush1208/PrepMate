@@ -25,13 +25,18 @@ def _keys(*names: str) -> list[str]:
 
 
 # Several keys per provider are allowed: GEMINI_API_KEYS=key1,key2,key3
+# Several models too, in priority order: GEMINI_MODELS=gemini-3.8-flash,gemini-3.8-flash-lite
 GEMINI_API_KEYS = _keys("GEMINI_API_KEYS", "GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+GEMINI_MODELS = _keys("GEMINI_MODELS", "GEMINI_MODEL") or ["gemini-3.8-flash"]
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# Gemini 3 models "think" before answering; low effort keeps replies fast. Empty = model default.
+GEMINI_REASONING_EFFORT = os.getenv("GEMINI_REASONING_EFFORT", "low").strip()
 
 GROQ_API_KEYS = _keys("GROQ_API_KEYS", "GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "")
+GROQ_MODELS = _keys("GROQ_MODELS", "GROQ_MODEL")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+
+LLM_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "25"))
 
 # Which provider is tried first. All keys of the first provider are tried before the next one.
 LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "gemini,groq").split(",") if p.strip()]

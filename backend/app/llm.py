@@ -1,14 +1,17 @@
 """Free-tier LLM access through the OpenAI-compatible APIs of Gemini and Groq.
 
-You can give several API keys per provider (comma-separated in .env).
-Every call walks a fallback chain:
+You can give several API keys AND several models per provider (comma-separated in .env).
+Every (model, key) pair is a "slot". A call walks this fallback chain:
 
-    Gemini key 1 -> Gemini key 2 -> ... -> Groq key 1 -> Groq key 2 -> ...
+    gemini model 1: key 1, key 2, ...   (keys rotated round-robin)
+    gemini model 2: key 1, key 2, ...
+    groq   model 1: key 1, ...
 
-- A key that hits a rate limit (HTTP 429) is put on cooldown for a while and skipped.
-- A key that is rejected (HTTP 401/403) is disabled until the server restarts.
-- Bad JSON from the model gets one retry on the same key.
-- Successful keys are rotated round-robin, so the free quota is spread across keys.
+- 429 rate limit      -> that slot cools down for 60s, try the next key
+- 503 / 500 / timeout -> the MODEL is overloaded: skip that model's other keys for this call
+- 401 / 403           -> bad key: disabled until restart
+- 404                 -> model not available: disabled until restart
+- bad JSON            -> one retry on the same slot
 If no key is set at all, a small offline "mock" model is used so the app still runs.
 """
 import json
@@ -18,13 +21,14 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from openai import APIStatusError, OpenAI, RateLimitError
+from openai import APIStatusError, APITimeoutError, OpenAI, RateLimitError
 
 from . import config
 
 log = logging.getLogger("prepmate.llm")
 
 RATE_LIMIT_COOLDOWN_S = 60
+OVERLOAD_COOLDOWN_S = 20
 
 
 class LLMUnavailable(Exception):
@@ -50,20 +54,23 @@ class KeySlot:
 class KeyPool:
     def __init__(self, slots: list[KeySlot]):
         self.slots = slots
-        self._next = {p: 0 for p in config.LLM_PROVIDER_ORDER}
+        self._next: dict[tuple, int] = {}
         self._lock = threading.Lock()
 
     def chain(self) -> list[KeySlot]:
-        """Keys to try, in order: providers in configured order, each rotated round-robin."""
+        """Slots to try: provider order, then model order, keys rotated round-robin per model."""
+        groups: dict[tuple, list[KeySlot]] = {}
+        for s in self.slots:  # slots are built in priority order, dicts keep insertion order
+            groups.setdefault((s.provider, s.model), []).append(s)
         ordered = []
         with self._lock:
             for provider in config.LLM_PROVIDER_ORDER:
-                keys = [s for s in self.slots if s.provider == provider]
-                if not keys:
-                    continue
-                start = self._next[provider] % len(keys)
-                self._next[provider] = start + 1
-                ordered += keys[start:] + keys[:start]
+                for (p, model), keys in groups.items():
+                    if p != provider:
+                        continue
+                    start = self._next.get((p, model), 0) % len(keys)
+                    self._next[(p, model)] = start + 1
+                    ordered += keys[start:] + keys[:start]
         return [s for s in ordered if s.available()]
 
     def status(self) -> list[dict]:
@@ -72,21 +79,20 @@ class KeyPool:
             "key": s.label, "model": s.model, "uses": s.uses, "failures": s.failures,
             "state": "disabled" if s.disabled else
                      f"cooldown {int(s.cooldown_until - now)}s" if s.cooldown_until > now else "ready",
-            "last_error": s.last_error[:120],
+            "last_error": s.last_error[:160],
         } for s in self.slots]
 
 
 def _build_pool() -> KeyPool:
     slots = []
-    for provider, keys, model, base_url in (
-        ("gemini", config.GEMINI_API_KEYS, config.GEMINI_MODEL, config.GEMINI_BASE_URL),
-        ("groq", config.GROQ_API_KEYS, config.GROQ_MODEL, config.GROQ_BASE_URL),
+    for provider, keys, models, base_url in (
+        ("gemini", config.GEMINI_API_KEYS, config.GEMINI_MODELS, config.GEMINI_BASE_URL),
+        ("groq", config.GROQ_API_KEYS, config.GROQ_MODELS, config.GROQ_BASE_URL),
     ):
-        if not model:
-            continue
-        for i, key in enumerate(keys, start=1):
-            client = OpenAI(api_key=key, base_url=base_url, timeout=40, max_retries=0)
-            slots.append(KeySlot(provider, f"{provider}#{i}", client, model))
+        clients = [OpenAI(api_key=k, base_url=base_url, timeout=config.LLM_TIMEOUT_S, max_retries=0) for k in keys]
+        for model in models:
+            for i, client in enumerate(clients, start=1):
+                slots.append(KeySlot(provider, f"{provider}#{i}", client, model))
     return KeyPool(slots)
 
 
@@ -105,8 +111,27 @@ def is_mock() -> bool:
 
 
 def providers() -> list[str]:
-    """Labels of configured keys, e.g. ['gemini#1', 'gemini#2', 'groq#1']."""
-    return [s.label for s in pool().slots]
+    """Short summary for the UI, e.g. ['gemini-3.8-flash ×4', 'llama-x ×1']."""
+    counts: dict[str, int] = {}
+    for s in pool().slots:
+        if not s.disabled:
+            counts[s.model] = counts.get(s.model, 0) + 1
+    return [f"{m} ×{n}" for m, n in counts.items()]
+
+
+def list_models() -> dict:
+    """Which models each provider's first working key can use (for choosing model names)."""
+    out = {}
+    seen = set()
+    for s in pool().slots:
+        if s.provider in seen or s.disabled:
+            continue
+        seen.add(s.provider)
+        try:
+            out[s.provider] = sorted(m.id for m in s.client.models.list())
+        except Exception as e:
+            out[s.provider] = f"error: {type(e).__name__}"
+    return out
 
 
 def _parse_json(text: str) -> dict:
@@ -124,51 +149,67 @@ def _parse_json(text: str) -> dict:
     return data
 
 
+def _call(slot: KeySlot, system: str, user: str, temperature: float):
+    kwargs = {}
+    if slot.provider == "gemini" and config.GEMINI_REASONING_EFFORT:
+        kwargs["reasoning_effort"] = config.GEMINI_REASONING_EFFORT
+    return slot.client.chat.completions.create(
+        model=slot.model,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+        response_format={"type": "json_object"},
+        temperature=temperature,
+        **kwargs,
+    )
+
+
 def chat_json(system: str, user: str, temperature: float = 0.4) -> tuple[dict, str]:
-    """Ask for a JSON object, falling back across every configured key. Returns (data, key_label)."""
+    """Ask for a JSON object, falling back across every configured model and key."""
     if is_mock():
         return _mock_reply(user), "mock"
     errors = []
+    overloaded: set[tuple[str, str]] = set()  # models that failed server-side during THIS call
     for slot in pool().chain():
+        if (slot.provider, slot.model) in overloaded:
+            continue
         for attempt in range(2):
             try:
-                resp = slot.client.chat.completions.create(
-                    model=slot.model,
-                    messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-                    response_format={"type": "json_object"},
-                    temperature=temperature,
-                )
+                resp = _call(slot, system, user, temperature)
                 data = _parse_json(resp.choices[0].message.content or "")
                 slot.uses += 1
-                return data, slot.label
+                return data, f"{slot.label} {slot.model}"
             except (json.JSONDecodeError, ValueError) as e:
                 errors.append(f"{slot.label}: bad JSON")
                 slot.last_error = f"bad JSON: {e}"
                 if attempt == 0:
-                    continue  # one retry on the same key
-            except RateLimitError as e:
+                    continue  # one retry on the same slot
+            except RateLimitError:
                 slot.cooldown_until = time.time() + RATE_LIMIT_COOLDOWN_S
                 slot.failures += 1
-                slot.last_error = "rate limited"
-                errors.append(f"{slot.label}: rate limited")
-                log.info("%s rate limited, cooling down %ss", slot.label, RATE_LIMIT_COOLDOWN_S)
+                slot.last_error = "429 rate limited"
+                errors.append(f"{slot.label}/{slot.model}: rate limited")
+            except APITimeoutError:
+                slot.failures += 1
+                slot.last_error = "timeout"
+                overloaded.add((slot.provider, slot.model))
+                errors.append(f"{slot.label}/{slot.model}: timeout")
             except APIStatusError as e:
                 slot.failures += 1
-                slot.last_error = f"HTTP {e.status_code}"
-                if e.status_code in (401, 403):
-                    slot.disabled = True  # bad or revoked key
-                elif e.status_code == 404:
-                    slot.disabled = True  # model name not available for this key
+                slot.last_error = f"HTTP {e.status_code}: {str(e)[:120]}"
+                if e.status_code in (401, 403, 404):
+                    slot.disabled = True          # bad key, or model not available for it
+                elif e.status_code >= 500:
+                    slot.cooldown_until = time.time() + OVERLOAD_COOLDOWN_S
+                    overloaded.add((slot.provider, slot.model))
                 else:
                     slot.cooldown_until = time.time() + 15
-                errors.append(f"{slot.label}: HTTP {e.status_code}")
-            except Exception as e:  # network errors, timeouts
+                errors.append(f"{slot.label}/{slot.model}: HTTP {e.status_code}")
+            except Exception as e:  # network errors
                 slot.failures += 1
                 slot.last_error = type(e).__name__
                 slot.cooldown_until = time.time() + 15
-                errors.append(f"{slot.label}: {type(e).__name__}")
-            break  # move on to the next key
-    log.warning("all LLM keys failed: %s", errors)
+                errors.append(f"{slot.label}/{slot.model}: {type(e).__name__}")
+            break  # move on to the next slot
+    log.warning("all LLM slots failed: %s", errors)
     raise LLMUnavailable("; ".join(errors) or "no API key is currently available (all cooling down)")
 
 
