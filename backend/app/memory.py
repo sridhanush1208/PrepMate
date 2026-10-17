@@ -265,6 +265,7 @@ def context_pack(student_id: str, agent: str, topic_id: str | None = None,
     recall = Recall()
     pack: dict = {
         "rules": recall.run(g, "rules_for_agent", {"agent": agent}),
+        "all_saved_rules": recall.run(g, "rules_all", {}),
         "facts": recall.run(g, "student_facts", {}),
         "open_handoff": next(iter(recall.run(g, "handoff_open", {"agent": agent})), None),
         "open_tasks": recall.run(g, "tasks_open", {}),

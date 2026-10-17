@@ -25,7 +25,9 @@ CONTRACT = """Reply ONLY with a JSON object of this shape:
   "handoff": null
 }
 Save memory_updates ONLY for NEW, lasting information from the student's latest message
-(goals, languages, deadlines, preferences on how to be taught or tested). Do not repeat things already in MEMORY.
+(goals, languages, deadlines, preferences on how to be taught or tested). Do not repeat things already in MEMORY:
+check "facts" and "all_saved_rules" first, and skip anything that means the same as an existing item.
+Never save facts about a single quiz attempt (attempts are stored automatically).
 A rule is for requests like "give me a hint first next time" (applies_to: interviewer) or
 "explain with diagrams" (applies_to: tutor). Use an empty list when there is nothing new."""
 
@@ -36,8 +38,10 @@ GRADE_CONTRACT = """Reply ONLY with a JSON object of exactly this shape (all key
   "reply": "what you say to the student (markdown, under 120 words)",
   "memory_updates": []
 }
-"score" MUST be a number between 0.0 and 1.0. memory_updates may hold facts/rules as described:
-{"kind": "fact", "text": "..."} or {"kind": "rule", "text": "...", "applies_to": "coach|interviewer|tutor|planner"}."""
+"score" MUST be a number between 0.0 and 1.0.
+The attempt, score and feedback are saved automatically, so do NOT describe this attempt in memory_updates.
+Leave memory_updates empty unless the student stated a new goal or preference, e.g.
+{"kind": "rule", "text": "...", "applies_to": "coach|interviewer|tutor|planner"}."""
 
 ROLE = {
     "coach": """You are the COACH. Be warm and brief. Recap what matters from memory and suggest one next step
