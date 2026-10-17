@@ -1,4 +1,4 @@
-"""Settings read from environment variables (and the repo-root .env file)."""
+﻿"""Settings read from environment variables (and the repo-root .env file)."""
 import os
 from pathlib import Path
 
@@ -27,7 +27,7 @@ def _keys(*names: str) -> list[str]:
 # Several keys per provider are allowed: GEMINI_API_KEYS=key1,key2,key3
 # Several models too, in priority order: GEMINI_MODELS=gemini-3.8-flash,gemini-3.8-flash-lite
 GEMINI_API_KEYS = _keys("GEMINI_API_KEYS", "GEMINI_API_KEY")
-GEMINI_MODELS = _keys("GEMINI_MODELS", "GEMINI_MODEL") or ["gemini-3.8-flash"]
+GEMINI_MODELS = _keys("GEMINI_MODELS", "GEMINI_MODEL") or ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 # Gemini 3 models "think" before answering; low effort keeps replies fast. Empty = model default.
 GEMINI_REASONING_EFFORT = os.getenv("GEMINI_REASONING_EFFORT", "low").strip()
