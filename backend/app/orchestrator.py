@@ -160,6 +160,9 @@ def route(text: str, mode: str, session: dict) -> str:
         return "planner"
     if session.get("pending_question"):
         return "interviewer_skip" if t.strip() in ("skip", "next", "pass") else "interviewer_grade"
+    # "next time please give me a hint" is a preference -> Coach saves it as a rule
+    if re.search(r"\b(next time|from now on|in future|i prefer|i like|i learn better|always|never)\b", t):
+        return "coach"
     if re.search(r"\b(mock|interview|quiz|test me|ask me)\b", t):
         return "interviewer_ask"
     if re.search(r"\b(plan|schedule|roadmap|this week|timetable)\b", t):

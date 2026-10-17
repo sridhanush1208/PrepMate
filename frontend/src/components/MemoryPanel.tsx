@@ -35,7 +35,7 @@ export default function MemoryPanel({ student, version }: { student: Student; ve
   useEffect(load, [student.id, version, tab]);
 
   return (
-    <section className="flex min-h-[420px] flex-col rounded-xl border border-gray-200 bg-white">
+    <section className="flex h-[70vh] flex-col rounded-xl border border-gray-200 bg-white lg:h-auto lg:min-h-0">
       <div className="flex items-center gap-1 border-b border-gray-200 px-3 pt-2">
         <span className="mr-2 text-sm font-semibold">🧠 What PrepMate remembers about {student.name}</span>
         <div className="ml-auto flex gap-1">

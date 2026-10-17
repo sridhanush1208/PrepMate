@@ -47,7 +47,7 @@ export default function Chat({ events, busy, onSend }: Props) {
   };
 
   return (
-    <section className="flex min-h-0 flex-col rounded-xl border border-gray-200 bg-white">
+    <section className="flex h-[70vh] flex-col rounded-xl border border-gray-200 bg-white lg:h-auto lg:min-h-0">
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {events.map((e, i) => {
           if (e.type === "user")

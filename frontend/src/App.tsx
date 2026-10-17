@@ -104,7 +104,7 @@ export default function App() {
         </div>
       )}
       {current && sessionId ? (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 p-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-y-auto p-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:overflow-hidden">
           <Chat events={events} busy={busy} onSend={send} />
           <MemoryPanel student={current} version={memoryVersion} />
         </div>

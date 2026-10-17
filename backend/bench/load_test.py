@@ -68,7 +68,7 @@ def setup(n: int):
     return ids
 
 
-def run(mode: str, ids: list[str], workers: int, seconds: float) -> dict:
+def run(mode: str, ids: list[str], workers: int, seconds: float, write_ratio: float = 0.2) -> dict:
     db = get_db()
     stop = time.time() + seconds
     lat = {"read": [], "write": []}
@@ -82,7 +82,7 @@ def run(mode: str, ids: list[str], workers: int, seconds: float) -> dict:
         while time.time() < stop:
             sid, agent = rnd.choice(ids), rnd.choice(AGENTS)
             g = db.select_graph(f"bench_{sid}" if mode == "per_student" else "bench_shared")
-            is_write = rnd.random() < 0.2
+            is_write = rnd.random() < write_ratio
             params = {"sid": sid, "tid": rnd.choice(TOPICS), "score": rnd.random(),
                       "agent": agent, "text": "bench", "now": int(time.time() * 1000)}
             t0 = time.perf_counter()
@@ -119,33 +119,44 @@ def main():
     ap.add_argument("--students", type=int, default=200)
     ap.add_argument("--workers", type=int, default=32)
     ap.add_argument("--seconds", type=float, default=30)
+    ap.add_argument("--write-ratios", default="0.2,0.8", help="comma-separated, e.g. 0.2,0.8")
     args = ap.parse_args()
+    ratios = [float(r) for r in args.write_ratios.split(",")]
 
     print(f"setting up {args.students} student graphs + 1 shared graph...")
     ids = setup(args.students)
     results = []
-    for mode in ("per_student", "shared"):
-        print(f"running {mode} for {args.seconds}s with {args.workers} concurrent workers...")
-        r = run(mode, ids, args.workers, args.seconds)
-        print(r)
-        results.append(r)
+    for ratio in ratios:
+        for mode in ("per_student", "shared"):
+            print(f"running {mode}, {ratio:.0%} writes, {args.seconds}s, {args.workers} workers...")
+            r = run(mode, ids, args.workers, args.seconds, ratio)
+            r["write_ratio"] = ratio
+            print(r)
+            results.append(r)
 
     lines = [
         "# Load test results",
         "",
         f"Run: {datetime.now():%Y-%m-%d %H:%M} · {args.students} students × 4 agents · "
-        f"{args.workers} concurrent workers · {args.seconds:.0f}s per mode · 80% reads / 20% writes · "
-        f"FalkorDB at {config.FALKORDB_HOST}:{config.FALKORDB_PORT}",
+        f"{args.workers} concurrent workers (one Python process) · {args.seconds:.0f}s per run · "
+        f"FalkorDB in Docker on a laptop",
         "",
-        "| Mode | Ops/sec | Read p50 (ms) | Read p95 (ms) | Write p50 (ms) | Write p95 (ms) | Errors |",
-        "|---|---|---|---|---|---|---|",
+        "| Mode | Writes | Ops/sec | Read p50 (ms) | Read p95 (ms) | Write p50 (ms) | Write p95 (ms) | Errors |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for r in results:
         name = "One graph per student" if r["mode"] == "per_student" else "One shared graph"
-        lines.append(f"| {name} | {r['ops_per_sec']:.0f} | {r['read_p50']:.1f} | {r['read_p95']:.1f} | "
-                     f"{r['write_p50']:.1f} | {r['write_p95']:.1f} | {r['errors']} |")
-    lines += ["", "FalkorDB runs reads in parallel but writes one at a time **per graph**, "
-              "so separate graphs let different students' writes proceed independently."]
+        lines.append(f"| {name} | {r['write_ratio']:.0%} | {r['ops_per_sec']:.0f} | {r['read_p50']:.1f} | "
+                     f"{r['read_p95']:.1f} | {r['write_p50']:.1f} | {r['write_p95']:.1f} | {r['errors']} |")
+    lines += [
+        "",
+        "How to read this: FalkorDB runs reads in parallel but writes one at a time *per graph*. "
+        "With mostly reads, both layouts perform about the same (differences between runs are noise). "
+        "With mostly writes, the shared graph makes every student's writes queue behind each other, "
+        "while separate graphs let them proceed independently. Compare the write-heavy rows. "
+        "One graph per student also gives **isolation** (no query can leak another student's memory) "
+        "and **easy deletion** (`GRAPH.DELETE`).",
+    ]
     out = config.BACKEND_DIR / "bench" / "results.md"
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {out}")

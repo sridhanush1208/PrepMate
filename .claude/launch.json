@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prepmate-api",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--directory", "backend", "uvicorn", "app.main:app", "--port", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "prepmate-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
+      "port": 5173
+    }
+  ]
+}

@@ -6,6 +6,8 @@ Arjun (Service-based): brand new, empty memory.
 
 Run from backend/:  uv run python -m scripts.seed_demo_students
 """
+import sys
+
 from app import memory
 
 DAY = 86_400_000
@@ -48,6 +50,9 @@ def seed_arjun() -> None:
 
 
 def main() -> None:
+    if "--if-missing" in sys.argv and memory.student_exists("riya"):
+        print("demo students already exist, skipping")
+        return
     seed_riya()
     seed_arjun()
     print("seeded demo students: riya, arjun")
