@@ -1,0 +1,58 @@
+# How much each role track focuses on a topic: 3 = heavy, 2 = medium, 1 = light.
+# Illustrative weights for practice planning, not real company data.
+roles:
+  - id: product_sde
+    name: "Product SDE"
+    focus:
+      arrays: 3
+      hashing: 3
+      sliding_window: 3
+      two_pointers: 3
+      binary_search: 3
+      trees: 3
+      tree_traversals: 3
+      bfs: 3
+      dfs: 3
+      dp_basics: 3
+      dp_knapsack: 3
+      strings: 2
+      heaps: 2
+      topo_sort: 2
+      dijkstra: 2
+      union_find: 2
+      graph_basics: 2
+      processes: 2
+      sql_joins: 2
+      oop: 1
+      http: 1
+
+  - id: service_based
+    name: "Service-based"
+    focus:
+      oop: 3
+      solid: 3
+      sql_basics: 3
+      sql_joins: 3
+      arrays: 3
+      strings: 3
+      sorting: 2
+      linked_lists: 2
+      stacks: 2
+      processes: 2
+      osi: 2
+      http: 2
+      normalization: 2
+      dp_basics: 1
+      bfs: 1
+
+  - id: data_analyst
+    name: "Data Analyst"
+    focus:
+      sql_basics: 3
+      sql_joins: 3
+      statistics: 3
+      probability: 3
+      normalization: 2
+      arrays: 2
+      hashing: 2
+      sorting: 1

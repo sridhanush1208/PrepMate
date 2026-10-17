@@ -1,0 +1,61 @@
+# Each topic: id, name, area, prereqs (topic ids to learn first)
+topics:
+  # ---------- DSA ----------
+  - {id: complexity, name: "Complexity (Big-O)", area: DSA, prereqs: []}
+  - {id: arrays, name: "Arrays", area: DSA, prereqs: [complexity]}
+  - {id: strings, name: "Strings", area: DSA, prereqs: [arrays]}
+  - {id: hashing, name: "Hashing", area: DSA, prereqs: [arrays]}
+  - {id: two_pointers, name: "Two Pointers", area: DSA, prereqs: [arrays]}
+  - {id: prefix_sums, name: "Prefix Sums", area: DSA, prereqs: [arrays]}
+  - {id: sliding_window, name: "Sliding Window", area: DSA, prereqs: [two_pointers, hashing]}
+  - {id: sorting, name: "Sorting", area: DSA, prereqs: [arrays, complexity]}
+  - {id: binary_search, name: "Binary Search", area: DSA, prereqs: [sorting]}
+  - {id: recursion, name: "Recursion", area: DSA, prereqs: []}
+  - {id: backtracking, name: "Backtracking", area: DSA, prereqs: [recursion]}
+  - {id: linked_lists, name: "Linked Lists", area: DSA, prereqs: []}
+  - {id: stacks, name: "Stacks", area: DSA, prereqs: [arrays]}
+  - {id: queues, name: "Queues", area: DSA, prereqs: [arrays, linked_lists]}
+  - {id: monotonic_stack, name: "Monotonic Stack", area: DSA, prereqs: [stacks]}
+  - {id: trees, name: "Trees Basics", area: DSA, prereqs: [recursion]}
+  - {id: tree_traversals, name: "Tree Traversals", area: DSA, prereqs: [trees, stacks, queues]}
+  - {id: bst, name: "Binary Search Trees", area: DSA, prereqs: [tree_traversals, binary_search]}
+  - {id: heaps, name: "Heaps / Priority Queue", area: DSA, prereqs: [trees]}
+  - {id: tries, name: "Tries", area: DSA, prereqs: [trees, strings]}
+  - {id: graph_basics, name: "Graph Basics", area: DSA, prereqs: [arrays, hashing]}
+  - {id: bfs, name: "BFS", area: DSA, prereqs: [graph_basics, queues]}
+  - {id: dfs, name: "DFS", area: DSA, prereqs: [graph_basics, recursion, stacks]}
+  - {id: topo_sort, name: "Topological Sort", area: DSA, prereqs: [bfs, dfs]}
+  - {id: union_find, name: "Union-Find", area: DSA, prereqs: [graph_basics]}
+  - {id: dijkstra, name: "Dijkstra / Shortest Paths", area: DSA, prereqs: [bfs, heaps]}
+  - {id: greedy, name: "Greedy", area: DSA, prereqs: [sorting]}
+  - {id: dp_basics, name: "DP Basics", area: DSA, prereqs: [recursion]}
+  - {id: dp_knapsack, name: "DP: Knapsack & Subsequences", area: DSA, prereqs: [dp_basics]}
+  - {id: bits, name: "Bit Manipulation", area: DSA, prereqs: []}
+
+  # ---------- OOP ----------
+  - {id: oop, name: "OOP Basics", area: OOP, prereqs: []}
+  - {id: solid, name: "SOLID / Design Principles", area: OOP, prereqs: [oop]}
+
+  # ---------- DBMS ----------
+  - {id: sql_basics, name: "Relational Model & SQL Basics", area: DBMS, prereqs: []}
+  - {id: sql_joins, name: "SQL Joins & Group By", area: DBMS, prereqs: [sql_basics]}
+  - {id: normalization, name: "Normalization", area: DBMS, prereqs: [sql_basics]}
+  - {id: transactions, name: "Transactions & ACID", area: DBMS, prereqs: [sql_basics]}
+  - {id: indexing, name: "Indexing (B-Trees)", area: DBMS, prereqs: [sql_basics, bst]}
+
+  # ---------- OS ----------
+  - {id: processes, name: "Processes & Threads", area: OS, prereqs: []}
+  - {id: scheduling, name: "CPU Scheduling", area: OS, prereqs: [processes]}
+  - {id: synchronization, name: "Synchronization (locks, semaphores)", area: OS, prereqs: [processes]}
+  - {id: deadlocks, name: "Deadlocks", area: OS, prereqs: [synchronization]}
+  - {id: memory_mgmt, name: "Memory Management & Paging", area: OS, prereqs: [processes]}
+
+  # ---------- CN ----------
+  - {id: osi, name: "OSI & TCP/IP Model", area: CN, prereqs: []}
+  - {id: tcp_udp, name: "TCP vs UDP", area: CN, prereqs: [osi]}
+  - {id: dns, name: "DNS", area: CN, prereqs: [osi]}
+  - {id: http, name: "HTTP & What Happens When You Type a URL", area: CN, prereqs: [tcp_udp, dns]}
+
+  # ---------- Data ----------
+  - {id: probability, name: "Probability Basics", area: Data, prereqs: []}
+  - {id: statistics, name: "Statistics Basics", area: Data, prereqs: [probability]}
