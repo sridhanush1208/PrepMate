@@ -3,6 +3,7 @@
 Run from backend/:  uv run uvicorn app.main:app --reload --port 8000
 """
 import logging
+import re
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from . import config, memory, orchestrator
 from .db import list_student_ids, slugify
-from .llm import is_mock, list_models, pool, providers
+from .llm import is_mock, list_models, pool, probe, providers
 from .queries import all_queries
 
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +52,14 @@ def llm_status():
 def llm_models():
     """Model names your keys can use (to pick GEMINI_MODELS / GROQ_MODELS)."""
     return list_models()
+
+
+@app.get("/api/llm/probe")
+def llm_probe(provider: str, model: str):
+    """Time one tiny request to a model, e.g. /api/llm/probe?provider=gemini&model=gemini-3.5-flash"""
+    if provider not in ("gemini", "groq") or not re.fullmatch(r"[\w./:-]{1,80}", model):
+        raise HTTPException(400, "bad provider or model")
+    return probe(provider, model)
 
 
 @app.get("/api/roles")

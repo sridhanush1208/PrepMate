@@ -36,7 +36,7 @@ GROQ_API_KEYS = _keys("GROQ_API_KEYS", "GROQ_API_KEY")
 GROQ_MODELS = _keys("GROQ_MODELS", "GROQ_MODEL")
 GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
-LLM_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "25"))
+LLM_TIMEOUT_S = float(os.getenv("LLM_TIMEOUT_S", "20"))
 
 # Which provider is tried first. All keys of the first provider are tried before the next one.
 LLM_PROVIDER_ORDER = [p.strip() for p in os.getenv("LLM_PROVIDER_ORDER", "gemini,groq").split(",") if p.strip()]

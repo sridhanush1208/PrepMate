@@ -134,6 +134,21 @@ def list_models() -> dict:
     return out
 
 
+def probe(provider: str, model: str) -> dict:
+    """Send one tiny JSON request to a model and time it (helps pick fast models)."""
+    slot = next((s for s in pool().slots if s.provider == provider and not s.disabled), None)
+    if not slot:
+        return {"ok": False, "error": f"no usable {provider} key"}
+    test = KeySlot(provider, slot.label, slot.client, model)
+    t0 = time.time()
+    try:
+        resp = _call(test, "Reply with JSON only.", 'Return {"reply": "pong"}', 0)
+        data = _parse_json(resp.choices[0].message.content or "")
+        return {"ok": True, "seconds": round(time.time() - t0, 2), "reply": data}
+    except Exception as e:
+        return {"ok": False, "seconds": round(time.time() - t0, 2), "error": f"{type(e).__name__}: {str(e)[:160]}"}
+
+
 def _parse_json(text: str) -> dict:
     text = text.strip()
     fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.S)
