@@ -1,14 +1,3 @@
----
-title: PrepMate
-emoji: 🎯
-colorFrom: indigo
-colorTo: green
-sdk: docker
-app_port: 7860
-pinned: false
-short_description: 4 AI agents with shared graph memory for placement prep
----
-
 # 🎯 PrepMate
 
 **A team of 4 AI agents that helps you prepare for placement interviews. They remember you across sessions and share one memory graph in [FalkorDB](https://www.falkordb.com/).**
@@ -22,7 +11,7 @@ Most prep chatbots forget you the moment the tab closes. PrepMate's agents don't
 - 🟣 **Tutor**: explains topics *your* way and finds the root cause of a weakness
 - 🟠 **Planner**: keeps a shared task board for the other agents
 
-> 🎬 Demo video: _add link_ · 🌐 Live demo: _add Hugging Face Space link_
+> 🎬 Demo video: _add link_ · 🌐 Live demo: _add Render link_ (free tier: the first visit after idle takes ~1 minute to wake up)
 
 ---
 
@@ -185,6 +174,12 @@ Without any API key the app still runs with an offline mock model, so you can ex
 **Terminal chat:** `uv run python -m app.cli --student riya` (commands: `/mock`, `/teach`, `/plan`, `/memory`, `/end`)
 **Tests:** `uv run python -m pytest` (needs FalkorDB running)
 **Single container (same as the live demo):** `docker build -t prepmate . && docker run -p 7860:7860 --env-file .env prepmate`
+
+### Deploy (free, Render)
+
+The repo includes a [`render.yaml`](render.yaml) blueprint: one free Docker web service running FalkorDB, the API and the UI together (about 100 MB RAM).
+On Render: **New → Blueprint →** pick this repo, then enter `GEMINI_API_KEYS` / `GEMINI_MODEL` (and the optional Groq values) when asked.
+The free tier has no persistent disk, so the container re-seeds the catalog and demo students when it starts. Memory persistence across restarts is shown locally with the Docker volume in `docker-compose.yml`.
 
 ---
 
