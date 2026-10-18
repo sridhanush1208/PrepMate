@@ -1,4 +1,4 @@
-﻿"""Settings read from environment variables (and the repo-root .env file)."""
+"""Settings read from environment variables (and the repo-root .env file)."""
 import os
 from pathlib import Path
 

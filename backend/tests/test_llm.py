@@ -1,4 +1,4 @@
-﻿"""Fallback chain tests with fake clients (no network, no database)."""
+"""Fallback chain tests with fake clients (no network, no database)."""
 import pytest
 
 try:  # openai >= 3 ships httpx2

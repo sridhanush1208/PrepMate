@@ -1,4 +1,4 @@
-﻿# AI usage disclosure
+# AI usage disclosure
 
 The hackathon rules allow AI coding assistants as long as they are disclosed. This file is that disclosure.
 

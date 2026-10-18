@@ -1,17 +1,17 @@
-﻿# ðŸŽ¯ PrepMate
+# 🎯 PrepMate
 
 **A team of 4 AI agents that helps you prepare for placement interviews. They remember you across sessions and share one memory graph in [FalkorDB](https://www.falkordb.com/).**
 
-> Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs Ã— FalkorDB), **Track 02: Agent Memory and Coordination**.
+> Built for **Graph Hacks: Context for AI Agents** (WeMakeDevs × FalkorDB), **Track 02: Agent Memory and Coordination**.
 
 Most prep chatbots forget you the moment the tab closes. PrepMate's agents don't:
 
-- ðŸŸ¢ **Coach**: greets you with what happened last time and routes you
-- ðŸ”µ **Interviewer**: picks a mock question from your memory, then grades your answer
-- ðŸŸ£ **Tutor**: explains topics *your* way and finds the root cause of a weakness
-- ðŸŸ  **Planner**: keeps a shared task board for the other agents
+- 🟢 **Coach**: greets you with what happened last time and routes you
+- 🔵 **Interviewer**: picks a mock question from your memory, then grades your answer
+- 🟣 **Tutor**: explains topics *your* way and finds the root cause of a weakness
+- 🟠 **Planner**: keeps a shared task board for the other agents
 
-> ðŸŽ¬ Demo video: _add link_ Â· ðŸŒ Live demo: _add Render link_ (free tier: the first visit after idle takes ~1 minute to wake up)
+> 🎬 Demo video: _add link_ · 🌐 Live demo: **https://prepmate-q443.onrender.com** (free tier: the first visit after idle takes ~1 minute to wake up)
 
 ---
 
@@ -19,8 +19,8 @@ Most prep chatbots forget you the moment the tab closes. PrepMate's agents don't
 
 1. Riya presses **Mock interview**. The Interviewer reads the shared task board, sees "Try your first BFS question" and asks a BFS question.
 2. Riya's answer is weak (score 0.3). The attempt is saved and BFS mastery drops.
-3. **Handoff:** Interviewer â†’ Tutor ("struggled with BFS").
-4. The Tutor runs a **multi-hop root-cause query**: BFS â† Queues, and Riya's Queues mastery is also low. It explains Queues â†’ BFS **with Java code**, because of a rule Riya gave two days ago.
+3. **Handoff:** Interviewer → Tutor ("struggled with BFS").
+4. The Tutor runs a **multi-hop root-cause query**: BFS ← Queues, and Riya's Queues mastery is also low. It explains Queues → BFS **with Java code**, because of a rule Riya gave two days ago.
 5. In parallel, the Planner writes "Retry BFS tomorrow" to the task board.
 6. Riya says "next time give me a hint before the question". That becomes a **procedural memory** rule for the Interviewer.
 7. **Restart the server.** Next session the Coach says: *"Welcome back Riya! BFS was tricky: you scored 0.3. Your plan says: Retry BFS."* The Interviewer now gives a hint first.
@@ -48,16 +48,16 @@ Under every agent reply, **"memories used"** shows exactly which graph queries w
 ## Architecture
 
 ```
-React (Vite + TS)  â”€â”€HTTPâ”€â”€â–¶  FastAPI
-                                 â”‚
+React (Vite + TS)  ──HTTP──▶  FastAPI
+                                 │
                        Orchestrator (hand-written, no framework)
-                       route â”€â–¶ recall (Cypher) â”€â–¶ 1 LLM call â”€â–¶ write memory â”€â–¶ handoff
-                                 â”‚                     â”‚
-                                 â–¼                     â–¼
+                       route ─▶ recall (Cypher) ─▶ 1 LLM call ─▶ write memory ─▶ handoff
+                                 │                     │
+                                 ▼                     ▼
                      FalkorDB (one instance)     Gemini / Groq (OpenAI-compatible)
-                     â”œâ”€ catalog          shared  multi-key fallback chain
-                     â”œâ”€ pm_riya          private
-                     â””â”€ pm_arjun         private
+                     ├─ catalog          shared  multi-key fallback chain
+                     ├─ pm_riya          private
+                     └─ pm_arjun         private
 ```
 
 - **Memory-first, LLM-light.** Routing, question choice, handoffs on low scores and retry tasks are decided from the graph **without** an LLM. The LLM is used only to grade, teach, plan and chat. About 1 call per turn keeps it within free tiers.
@@ -93,8 +93,8 @@ React (Vite + TS)  â”€â”€HTTPâ”€â”€â–¶  FastAPI
 ```
 
 **Memory rules** (simple and explainable):
-- Mastery after an attempt: first try = score, then `new = 0.6 Ã— old + 0.4 Ã— score`
-- Forgetting curve: `effective = mastery Ã— 0.5 ^ (days_since_practice / 14)`. A topic is "due for revision" when effective < 0.5.
+- Mastery after an attempt: first try = score, then `new = 0.6 × old + 0.4 × score`
+- Forgetting curve: `effective = mastery × 0.5 ^ (days_since_practice / 14)`. A topic is "due for revision" when effective < 0.5.
 
 ---
 
@@ -134,7 +134,7 @@ LIMIT 5
 
 ## Load test
 
-`backend/bench/load_test.py` simulates many students Ã— 4 agents reading and writing memory at once (80% reads / 20% writes, no LLM), and compares **one graph per student** against **one shared graph**.
+`backend/bench/load_test.py` simulates many students × 4 agents reading and writing memory at once (80% reads / 20% writes, no LLM), and compares **one graph per student** against **one shared graph**.
 
 Latest run (200 students, 32 concurrent workers, laptop + Docker, 0 errors in every run):
 
@@ -178,7 +178,7 @@ Without any API key the app still runs with an offline mock model, so you can ex
 ### Deploy (free, Render)
 
 The repo includes a [`render.yaml`](render.yaml) blueprint: one free Docker web service running FalkorDB, the API and the UI together (about 100 MB RAM).
-On Render: **New â†’ Blueprint â†’** pick this repo, then enter `GEMINI_API_KEYS` / `GEMINI_MODELS` (and optional `GROQ_API_KEYS` / `GROQ_MODELS`) when asked.
+On Render: **New → Blueprint →** pick this repo, then enter `GEMINI_API_KEYS` / `GEMINI_MODELS` (and optional `GROQ_API_KEYS` / `GROQ_MODELS`) when asked.
 The free tier has no persistent disk, so the container re-seeds the catalog and demo students when it starts. Memory persistence across restarts is shown locally with the Docker volume in `docker-compose.yml`.
 
 ---
