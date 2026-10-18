@@ -16,3 +16,8 @@ frontend/dist/
 Thumbs.db
 .vscode/
 .idea/
+
+# local-only: planning notes, editor/tool config, build cache
+prep/
+.claude/
+*.tsbuildinfo
