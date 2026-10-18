@@ -122,7 +122,7 @@ def start(student_id: str) -> tuple[str, list[dict]]:
     name = student.get("name", "there")
     lines = []
     attempts = [a for a in (last[0].get("attempts") or []) if a] if last else []
-    if last:
+    if last and last[0].get("previous"):
         lines.append(f"Welcome back, **{name}**! 👋")
         if attempts:
             worst = min(attempts, key=lambda a: a["score"])

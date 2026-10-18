@@ -251,7 +251,7 @@ def due_for_revision(student_id: str, now: int | None = None) -> list[dict]:
 
 def welcome_back(student_id: str, session_id: str) -> dict | None:
     result = rows(student_graph(student_id), "welcome_back", {"session_id": session_id})
-    if not result:
+    if not result or not result[0].get("previous"):
         return None
     last = result[0]
     last["attempts"] = [a for a in (last.get("attempts") or []) if a]

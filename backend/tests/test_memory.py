@@ -152,3 +152,18 @@ def test_welcome_back_mentions_last_session(student):
     orchestrator.end(student, s1)
     _, events = orchestrator.start(student)
     assert "BFS" in events[0]["text"] and "Welcome back" in events[0]["text"]
+
+
+def test_welcome_back_skips_empty_sessions(student):
+    s1, _ = orchestrator.start(student)
+    _attempt(student, s1, "q_bfs_1", 0.3)
+    for _ in range(2):  # opened the app twice without practising
+        empty, _ = orchestrator.start(student)
+        orchestrator.end(student, empty)
+    _, events = orchestrator.start(student)
+    assert "BFS" in events[0]["text"] and "0.3" in events[0]["text"]
+
+
+def test_first_visit_is_not_welcome_back(student):
+    _, events = orchestrator.start(student)
+    assert "Welcome back" not in events[0]["text"]
